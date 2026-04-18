@@ -101,6 +101,10 @@
             gap: 8px;
             cursor: pointer;
             user-select: none;
+            transition: background 0.2s;
+        }
+        .point-title:hover {
+            background: #eef2fc;
         }
         .point-title .name {
             display: flex;
@@ -128,14 +132,30 @@
             font-size: 0.8rem;
             color: #0056b3;
         }
+
+        /* ========= 折叠内容平滑过渡动画  ========= */
         .point-detail {
-            padding: 16px 18px;
-            border-top: 1px solid #eef2f8;
+            max-height: 0;
+            opacity: 0;
+            overflow-y: hidden;
+            padding: 0 18px;
+            margin: 0;
+            border-top: 1px solid transparent;
+            transition: max-height 0.45s cubic-bezier(0.33, 1, 0.68, 1), 
+                        opacity 0.3s ease,
+                        padding 0.2s ease,
+                        border-color 0.2s;
             background: #ffffff;
             font-size: 0.94rem;
             line-height: 1.55;
-            display: none;
         }
+        .point-detail.expanded {
+            max-height: 1500px;   /* 足够容纳所有内容 */
+            opacity: 1;
+            padding: 16px 18px;
+            border-top: 1px solid #eef2f8;
+        }
+
         .speech {
             background: #f0f7ff;
             padding: 12px 16px;
@@ -190,6 +210,10 @@
             background-color: #ff3333;
             box-shadow: 0 0 4px #ff3333, inset 0 0 2px rgba(0,0,0,0.2);
         }
+        .indicator-led.orange {
+            background-color: #ff7700;      
+            box-shadow: 0 0 4px #ff7700;
+        }
         .indicator-led.yellow {
             background-color: #ffcc00;
             box-shadow: 0 0 4px #ffcc00;
@@ -206,17 +230,7 @@
             50% { opacity: 0.3; }
         }
 
-        @media (max-width: 680px) {
-            .container { padding: 0 12px; }
-            .point-title { padding: 12px; }
-            .point-detail { padding: 14px; }
-            .speech { font-size: 0.85rem; }
-            .header h1 { font-size: 1.3rem; }
-            .section-header { font-size: 1.2rem; padding: 10px 16px; }
-            .key-sim { padding: 1px 4px; font-size: 0.85em; }
-        }
-
-        /* 悬浮窗样式 */
+        /* 悬浮按钮样式增强 + 隐藏/显示动画 */
         .floating-btn {
             position: fixed;
             bottom: 30px;
@@ -231,12 +245,24 @@
             text-align: center;
             cursor: pointer;
             z-index: 1000;
-            transition: transform 0.2s, background 0.2s;
+            transition: transform 0.2s, background 0.2s, opacity 0.25s ease, visibility 0.25s;
             border: none;
             font-family: inherit;
             text-decoration: none;
             display: inline-block;
             backdrop-filter: blur(2px);
+            opacity: 1;
+            visibility: visible;
+        }
+        .floating-btn.hidden-btn {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+        }
+        /* 点击反馈缩放动画 */
+        .floating-btn.click-feedback {
+            transform: scale(0.92);
+            transition: transform 0.08s linear;
         }
         .floating-btn:hover {
             transform: scale(1.03);
@@ -244,6 +270,19 @@
         }
         @media (max-width: 600px) {
             .floating-btn { padding: 8px 16px; font-size: 14px; bottom: 20px; right: 15px; }
+        }
+
+        /* 电话链接样式 */
+        .phone-link {
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            color: inherit;
+            transition: opacity 0.2s;
+        }
+        .phone-link:hover {
+            opacity: 0.85;
+            text-decoration: none;
         }
 
         footer {
@@ -273,7 +312,7 @@
             color: #ddd;
             text-decoration: none;
         }
-        .footer-col a:hover {
+        .footer-col a:not(.phone-link):hover {
             color: #ffcc00;
         }
         .copyright {
@@ -295,15 +334,15 @@
 
 <div class="container" id="dynamicContent"></div>
 
-<footer>
+<footer id="mainFooter">
     <div class="container">
         <div class="footer-grid">
             <div class="footer-col">
                 <h4>📞 报名咨询</h4>
                 <p>甘肃新一锦职业技能培训学校</p>
-                <p>杜老师：18593088868（微信同号）</p>
-                <p>曹老师：13239318425（微信同号）</p>
-                <p>李老师：13919987757（微信同号）</p>
+                <p>杜老师：18593088868</p>
+                <p>曹老师：13239318425</p>
+                <p>李老师：13919987757</p>
                 <p>培训地址：兰州新区·兰石兰驼·消防培训中心</p>
                 <p>鉴定地址：兰州市·安宁区·建宁西路301号</p>
             </div>
@@ -345,14 +384,20 @@
     
     function replaceIndicatorWithIcons(str) {
         if (!str) return str;
-        str = str.replace(/红色指示灯/g, '<i class="indicator-led red" title="红色指示灯"></i>');
-        str = str.replace(/黄色指示灯/g, '<i class="indicator-led yellow" title="黄色指示灯"></i>');
-        str = str.replace(/绿色指示灯/g, '<i class="indicator-led green" title="绿色指示灯"></i>');
-        str = str.replace(/[（(]红色[）)]/g, '<i class="indicator-led red" title="红色指示灯"></i>');
-        str = str.replace(/[（(]黄色[）)]/g, '<i class="indicator-led yellow" title="黄色指示灯"></i>');
-        str = str.replace(/[（(]绿色[）)]/g, '<i class="indicator-led green" title="绿色指示灯"></i>');
+        str = str.replace(/红色指示灯/g, '<i class="indicator-led red"></i>');
+        str = str.replace(/橙色指示灯/g, '<i class="indicator-led orange"></i>');
+        str = str.replace(/黄色指示灯/g, '<i class="indicator-led yellow"></i>');
+        str = str.replace(/绿色指示灯/g, '<i class="indicator-led green"></i>');
+        str = str.replace(/[（(]红色[）)]/g, '<i class="indicator-led red"></i>');
+        str = str.replace(/[（(]橙色[）)]/g, '<i class="indicator-led orange"></i>')
+        str = str.replace(/[（(]黄色[）)]/g, '<i class="indicator-led yellow"></i>');
+        str = str.replace(/[（(]绿色[）)]/g, '<i class="indicator-led green"></i>');
         str = str.replace(/(<i class="indicator-led red[^>]*><\/i>)(\s*)(闪亮|闪烁)/g, function(match, iconTag, space, twinkle) {
             let newIcon = iconTag.replace('indicator-led red', 'indicator-led red blink');
+            return newIcon + space + twinkle;
+        });
+        str = str.replace(/(<i class="indicator-led orange[^>]*><\/i>)(\s*)(闪亮|闪烁)/g, function(match, iconTag, space, twinkle) {
+            let newIcon = iconTag.replace('indicator-led orange', 'indicator-led red blink');
             return newIcon + space + twinkle;
         });
         str = str.replace(/(<i class="indicator-led yellow[^>]*><\/i>)(\s*)(闪亮|闪烁)/g, function(match, iconTag, space, twinkle) {
@@ -453,11 +498,11 @@
 
     // 原始考点数据 (id, name, star, score, content)
     const pointsRaw = [
-        { id:1, name:"消防控制室设备识别", star:false, score:5, content:"报告考官：<br>1、这是海湾5000H集中火灾报警控制器，显示屏显示火警/故障信息，指示灯指示系统状态，打印机打印报警记录，键盘区用于操作，作用是接收、显示和传递火灾报警信号，发出控制指令。<br>2、消防联动控制器：总线控制盘用于联动控制现场设备（如防火卷帘），多线控制盘直接启动关键设备（消防泵、风机），作用是按预设逻辑联动控制自动消防系统。<br>3、消防控制室图形显示装置：可实时图形化显示火警位置、设备状态及故障信息，支持事件监控和记录查询。" },
-        { id:2, name:"火灾自动报警系统控制器的电源工作状态检查", star:false, score:5, content:"报告考官：<br>1、当前主电指示灯常亮，主电处于正常工作状态；备电指示灯熄灭，屏幕无备电故障信息，备电处于正常待用状态。<br>2、若主电故障，主电灯熄灭，故障灯点亮，屏幕显示主电故障信息，需检查电源开关闭合或线路故障情况；若备电故障，备电灯熄灭，故障灯点亮，屏幕显示备电故障信息，需检查电池连接或更换。<br>3、主备电切换操作：关闭主电开关，备电指示灯亮，系统切换为备电供电；重新开启主电开关，主电指示灯恢复常亮。" },
+        { id:1, name:"消防控制室设备识别", star:false, score:5, content:"报告考官：<br>1.这是海湾5000H集中火灾报警控制器，显示屏显示火警/故障信息，指示灯指示系统状态，打印机打印报警记录，键盘区用于操作，作用是接收、显示和传递火灾报警信号，发出控制指令。<br>2.消防联动控制器：总线控制盘用于联动控制现场设备（如防火卷帘），多线控制盘直接启动关键设备（消防泵、风机），作用是按预设逻辑联动控制自动消防系统。<br>3.消防控制室图形显示装置：可实时图形化显示火警位置、设备状态及故障信息，支持事件监控和记录查询。" },
+        { id:2, name:"火灾自动报警系统控制器的电源工作状态检查", star:false, score:5, content:"报告考官：<br>1.当前主电指示灯常亮，主电处于正常工作状态；备电指示灯熄灭，屏幕无备电故障信息，备电处于正常待用状态。<br>2.若主电故障，主电灯熄灭，故障灯点亮，屏幕显示主电故障信息，需检查电源开关闭合或线路故障情况；若备电故障，备电灯熄灭，故障灯点亮，屏幕显示备电故障信息，需检查电池连接或更换。<br>3.主备电切换操作：关闭主电开关，备电指示灯亮，系统切换为备电供电；重新开启主电开关，主电指示灯恢复常亮。" },
         { id:3, name:"火灾自动报警系统工作状态判断★", star:true, score:4, content:"判断方法：<br>1. 火警状态判断：观察'火警'指示灯（红色） 若灯亮且显示屏有火警信息，则系统处于火警状态；否则无火警。<br>2. 故障状态判断：观察'故障'指示灯（黄色） 若灯亮且显示屏有故障信息，则存在故障；否则无故障。<br>3. 监管状态判断：观察'监管'指示灯（红色） 若灯亮，表示有监管报警（如压力开关动作）；否则无监管。<br>4. 屏蔽状态判断：观察'屏蔽'指示灯（黄色） 若灯亮，表示有设备被屏蔽；否则无屏蔽。<br>5. 联动状态判断：观察'启动'指示灯（红色）和'反馈'指示灯（红色） 若启动灯亮或闪亮、反馈灯亮，表示有联动设备启动并反馈；否则无联动。" },
-        { id:4, name:"集中火灾报警控制器的火警、联动、监管、隔离和故障报警信号区分", star:false, score:5, content:"识别方法：<br>1、火警：声音'119'+指示灯（红色）+屏幕显示火警信息。<br>2、故障：声音'120'+指示灯（黄色）+屏幕显示故障信息。<br>3、监管：声音'嘀~嘀'+指示灯（红色）+屏幕显示监管信息。<br>4、屏蔽：无声音+指示灯（黄色）+屏幕显示屏蔽信息。<br>5、启动/反馈（联动）：声音'嘀~嘀'+指示灯（红色）+屏幕显示启动/反馈信息。<br>总结：（红色）为警、（黄色）为障、（绿色）为态。" },
-        { id:5, name:"报警信息查看及报警部位确定★", star:true, score:4, content:"查询步骤：<br>一、通过火灾报警控制器屏幕查看<br>1、观察面板指示灯：（红色）（火警/联动/监管）或（黄色）（故障/屏蔽）灯亮，表示有对应报警。<br>2、查看屏幕信息窗口：<br>屏幕上半屏：显示火警、故障、屏蔽等信息。<br>屏幕下半屏：显示联动、反馈、启动、延时等信息。<br>无信息时全屏显示，多种信息并存时可按 窗口切换键（如'TAB'或'方向键'）切换焦点窗口。<br>3、确定报警部位：<br>在对应信息窗口中，每条信息均包含：发生时间、设备二次码（用户编码）、设备类型、具体位置注释。<br>按' 确认'键 可选中单条信息，再按 ▲/▼键 逐条滚动查看。<br>首警信息始终显示在最顶端。<br>4、辅助查询：<br>按 '查询' 键→ 选择'记录信息查询' → 可分别查看'运行记录'、'火警记录'、'操作记录'，每条记录均含时间、设备编码、位置等信息。<br>二、通过消防控制室图形显示装置（CRT）查看<br>1、观察主界面状态标识：<br>界面右上方状态标签根据异常信息类型显示不同颜色（火警（红色）故障（黄色）等）。<br>界面右下方异常信息窗口按类型统计并列出所有报警设备。<br>2、定位报警部位：<br>方式一：点击右上方状态标签下的文字，打开详细异常信息列表，查看设备编码、类型、位置、时间。<br>方式二：在主界面平面分区图上，发生报警的设备图标会以对应颜色闪烁或高亮显示。<br>方式三：界面显著位置显示首警信息，点击首警信息可直接定位到图中对应设备。<br>3、获取详细设备信息：<br>鼠标悬停在设备图标上，自动弹出悬浮窗，显示：设备编号、设备类型、控制器地址、回路号、分区号、描述（位置）、当前状态。" },
+        { id:4, name:"集中火灾报警控制器的火警、联动、监管、隔离和故障报警信号区分", star:false, score:5, content:"识别方法：<br>1.火警：声音'119'+指示灯（红色）+屏幕显示火警信息。<br>2.故障：声音'120'+指示灯（黄色）+屏幕显示故障信息。<br>3.监管：声音'嘀~嘀'+指示灯（红色）+屏幕显示监管信息。<br>4.屏蔽：无声音+指示灯（黄色）+屏幕显示屏蔽信息。<br>5.启动/反馈（联动）：声音'嘀~嘀'+指示灯（红色）+屏幕显示启动/反馈信息。<br>总结：（红色）为警、（黄色）为障、（绿色）为态。" },
+        { id:5, name:"报警信息查看及报警部位确定★", star:true, score:4, content:"查询步骤：<br>一、通过火灾报警控制器屏幕查看<br>1.观察面板指示灯：（红色）（火警/联动/监管）或（黄色）（故障/屏蔽）灯亮，表示有对应报警。<br>2.查看屏幕信息窗口：<br>屏幕上半屏：显示火警、故障、屏蔽等信息。<br>屏幕下半屏：显示联动、反馈、启动、延时等信息。<br>无信息时全屏显示，多种信息并存时可按 窗口切换键（如'TAB'或'方向键'）切换焦点窗口。<br>3.确定报警部位：<br>在对应信息窗口中，每条信息均包含：发生时间、设备二次码（用户编码）、设备类型、具体位置注释。<br>按' 确认'键 可选中单条信息，再按 ▲/▼键 逐条滚动查看。<br>首警信息始终显示在最顶端。<br>4.辅助查询：<br>按 '查询' 键→ 选择'记录信息查询' → 可分别查看'运行记录'、'火警记录'、'操作记录'，每条记录均含时间、设备编码、位置等信息。<br>二、通过消防控制室图形显示装置（CRT）查看<br>1.观察主界面状态标识：<br>界面右上方状态标签根据异常信息类型显示不同颜色（火警（红色）故障（黄色）等）。<br>界面右下方异常信息窗口按类型统计并列出所有报警设备。<br>2.定位报警部位：<br>方式一：点击右上方状态标签下的文字，打开详细异常信息列表，查看设备编码、类型、位置、时间。<br>方式二：在主界面平面分区图上，发生报警的设备图标会以对应颜色闪烁或高亮显示。<br>方式三：界面显著位置显示首警信息，点击首警信息可直接定位到图中对应设备。<br>3.获取详细设备信息：<br>鼠标悬停在设备图标上，自动弹出悬浮窗，显示：设备编号、设备类型、控制器地址、回路号、分区号、描述（位置）、当前状态。" },
         { id:6, name:"电气火灾监控系统工作状态判断及报警信息查看", star:false, score:5, content:"查看步骤：<br>一、判断电源工作状态：<br>观察面板指示灯，'主电工作'指示灯（绿色）常亮，'备电工作'指示灯（绿色）熄灭，表示主电工作正常；若主电故障，可检查交流220V输入及保险管；若备电故障（备电指示灯闪烁或熄灭），需检查蓄电池连接或电压。<br>二、判断报警指示状态：<br>观察'报警'指示灯（红色） 若灯亮，表示有电气火灾探测器报警（如漏电或温度超限）；否则无报警。<br>三、判断系统故障或通信故障状态：<br>观察'故障'指示灯（黄色） 若灯亮，表示存在探测器故障、总线故障或监控设备自身故障；'系统故障'指示灯（黄色）亮表示监控设备不能正常使用。同时可通过按'系统检查'键查看具体故障信息。<br>四、查看报警信息并确定报警部位：<br>1. 按'系统检查'键，进入系统检查菜单，选择'1.设备信息查询'或直接查看报警信息窗口。<br>2. 屏幕显示报警设备的用户编码（六位二次码）、设备类型（如：1 漏电探测）、报警值及注释信息（如：B区配电室），据此确定报警部位。<br>3. 查看完毕按'取消'键返回主界面。" },
         { id:7, name:"可燃气体探测报警系统工作状态判断及报警信息查看", star:false, score:5, content:"查看步骤：<br>一、判断电源工作状态：<br>观察面板指示灯，'主电工作'指示灯（绿色）常亮，'备电工作'指示灯（绿色）熄灭，表示主电工作正常；若主电故障，'主电工作'指示灯熄灭，同时'故障'指示灯（黄色）亮，控制器显示'主电故障'；若备电故障，'备电工作'指示灯闪烁或熄灭，同样报'备电故障'。<br>二、判断报警指示状态：<br>观察'报警'指示灯（红色）。若灯亮，表示有可燃气体探测器报警（浓度超限），同时蜂鸣器发出报警提示音（0.5秒间隔嘀嘀声）；否则无报警。<br>三、判断系统故障或通信故障状态：<br>观察'故障'指示灯（黄色）。若灯亮，表示存在探测器故障、总线故障、电源故障或通讯故障等；'系统故障'指示灯（黄色）亮表示控制器不能正常使用。可按'设备检查'键查看具体故障信息。<br>四、查看报警信息并判断报警部位：<br>1. 当有报警时，液晶屏自动显示报警信息，内容包括：报警事件类型（低限/高限）、报警设备的用户编码（9位二次码）、报警浓度、发生时间及部位注释（如：B区3层厨房）。<br>2. 也可按'记录检查'键，选择'报警记录检查'，查看历史报警信息，确认报警部位。<br>3. 查看完毕按'取消'键返回主界面。" },
         { id:8, name:"消防设备末端配电装置工作状态判断★", star:true, score:4, content:"判断步骤：<br>一、判断双电源自动转换开关的手动/自动控制状态：<br>观察转换开关上的模式选择开关（或拨杆），当前处于'自动Auto'位置。自动状态下，常用电源断电后自动切换至备用电源，常用电源恢复后自动切回；若需手动操作，可将开关拨至'手动Manual'位置，此时需人工操作手柄进行切换。<br>二、判断当前主、备电的工作状态：<br>观察转换开关上的指示灯或合闸指示标识：当前'常用电源合闸Non'指示灯亮，'备用电源合闸Ron'指示灯灭，表示当前由常用电源供电，末端配电装置处于主电工作状态；若常用电源故障，开关自动切换至备用电源，'备用电源合闸Ron'指示灯亮，'常用电源合闸Non'指示灯灭，此时处于备电工作状态。" },
@@ -470,7 +515,7 @@
         { id:15, name:"消防联动控制器直接手动控制单元操作★", star:true, score:5, content:"操作步骤：<br>一、切换直接手动控制单元至手动允许控制状态：<br>1. 找到直接控制盘（多线盘）面板上的手动锁（钥匙锁）。<br>2. 将钥匙旋转至'允许'位置，此时'允许'指示灯（绿色）点亮，'禁止'指示灯熄灭，直控盘处于手动允许控制状态。<br>二、启动联动设备并查看设备动作情况：<br>1. 在直控盘上根据标签找到需启动的设备对应的单元（例如'消防泵'）。<br>2. 按下该单元的'启动'键（绿色），'启动'指示灯（红色）点亮，启动命令发出。<br>3. 观察被控设备动作（如消防泵启动），待设备动作后，直控盘接收到反馈信号，该单元'反馈'指示灯（红色）常亮。<br>4. 如需停止，按下该单元'停动'键（红色），'启动'指示灯熄灭，停止命令发出。<br>5. 操作完成后，将手动锁旋转回'禁止'位置，并按火灾报警控制器'复位'键，使系统恢复正常监视状态。" },
         { id:16, name:"线型火灾探测器的火警和故障报警功能测试", star:false, score:5, content:"测试步骤：<br>一、对线型光束感烟火灾探测器火灾报警和故障报警功能进行测试：<br>1.火灾报警功能测试：<br>(1)调整探测器光路调节装置，使探测器处于正常监视状态（接收器指示灯稳定闪烁）。<br>(2)选择减光率为1.0dB～10.0dB的减光片（如10dB减光片），遮挡在发射器与接收器之间的光路上，探测器火警确认灯应点亮并保持，火灾报警控制器显示火警信息。<br>(3)测试完毕，撤除减光片，手动复位火灾报警控制器，探测器火警确认灯熄灭。<br>2.故障报警功能测试：<br>(1)使用减光率为11.5dB的减光片遮挡光路，探测器火警或故障确认灯应点亮，火灾报警控制器显示故障报警信息。<br>(2)也可通过断开探测器电源或通信线的方式，模拟离线故障，控制器应报故障。<br>(3)撤除减光片或恢复连接，复位控制器，探测器恢复正常监视状态。<br>二、对线型感温火灾探测器火灾报警和故障报警功能进行测试：<br>1.火灾报警功能测试：<br>(1)对可恢复型线型感温探测器：使用专用检测仪器（如热风枪或电加热器）对任一段标准报警长度（通常为1m）的敏感部件均匀加热，使其温度达到探测器报警设定阈值（如85℃或105℃），探测器信号处理单元的火警确认灯点亮并保持，火灾报警控制器显示火警信息。<br>(2)对不可恢复型探测器：采取模拟报警方法（如使用专用测试电阻或测试模式）使其报警，有备品时可抽样测试。<br>(3)测试完毕，停止加热使敏感部件温度恢复正常，复位火灾报警控制器，探测器火警确认灯熄灭。<br>2.故障报警功能测试：<br>(1)使线型感温探测器的敏感部件与信号处理单元之间处于断路状态（如拔下终端电阻或断开一根接线），探测器信号处理单元的故障指示灯应点亮，火灾报警控制器显示故障信息。<br>(2)也可模拟短路故障（部分探测器支持短路故障检测）。<br>(3)恢复连接后，故障自动恢复，复位控制器，探测器处于正常监视状态。" },
         { id:17, name:"火灾显示盘功能测试", star:false, score:5, content:"测试步骤：<br>一、对自检和消音功能进行测试：<br>1. 在火灾显示盘正常工作状态下，按下'自检'键，液晶屏显示'请输入密码：'，通过下翻键（加1）、上翻键（减1）输入密码'110'或'111'，按'自检'键确认。火灾显示盘进入自检状态，液晶屏显示'正在自检'，指示灯全部点亮，蜂鸣器发出声响，20秒后自检完成自动退出。<br>2. 当火灾显示盘收到火警信息发出火警声时，按下'消音'键，火警声消除，'消音'指示灯（红色）常亮；若有新的火警信息，报警声会重新启动，'消音'指示灯熄灭。<br>二、对火灾报警和故障报警功能进行测试：<br>1. 火灾报警功能测试：触发一个手动火灾报警按钮或感烟探测器，火灾报警控制器接收到火警后，火灾显示盘应在3秒内显示报警信息。液晶屏显示报警器件的8位地址编号、设备类型、报警时间、地点信息，首警信息显示'首警'，其余显示'火警'，同时'火警'指示灯（红色）常亮，蜂鸣器发出火警声。<br>2. 故障报警功能测试：断开火灾显示盘与控制器之间的总线连接，火灾显示盘应报出通讯故障（通讯灯熄灭或异常），控制器显示该火灾显示盘故障信息；恢复总线后故障自动恢复。<br>三、对复位功能进行测试：<br>在火灾显示盘报警状态下，通过火灾报警控制器进行'复位'操作，或断开火灾显示盘电源后重新上电，火灾显示盘应清除所有火警信息，'火警'指示灯熄灭，液晶屏恢复显示'系统正常运行中'，蜂鸣器停止发声，系统恢复正常监视状态。" },
-        { id:18, name:"自动喷水灭火系统类型区分", star:false, score:5, content:"区分方式：<br>一、湿式报警阀组、水流指示器等组件识别：<br>1.湿式报警阀组：包括湿式报警阀（单向阀，允许水流入系统侧）、延迟器（圆筒形容器，减少误报警）、水力警铃（铜铃铛，水力驱动报警）、压力开关（输出电信号）。阀体上设有供水侧和系统侧压力表，报警口与延迟器之间不应设置阀门。<br>2.水流指示器：安装于湿式系统配水管上，叶片型结构，当水流动时叶片摆动触发信号。本体标有水流方向，具有延时功能（2s～90s可调），灵敏度为15L/min～37.5L/min，复位时间不大于5s。<br>二、干式报警阀组、气压维持装置、充气设备等组件识别：<br>1.干式报警阀：<br>(1)系统侧充有预定压力的气体（通常为压缩空气或氮气）。<br>(2)阀瓣结构：干式阀的气体直接作用在阀瓣上，利用气、水压差使阀门关闭。<br>(3)阀体上除供水侧压力表外，还设有系统侧气压表，用于监视系统气压。<br>(4)阀体设有泄水口，用于排空系统侧积水。<br>(5)防复位装置：干式报警阀应设置防复位锁止机构。该机构在阀门动作后防止阀瓣组件自动回到伺应状态，需通过手动复位才能恢复，避免误复位导致系统失效。<br>2.气压维持装置：包括补气阀、压力开关等，用于自动维持系统侧气压在设定范围内。<br>3.充气设备：通常为小型空气压缩机或氮气瓶组，向干式系统管道内充气，防止低温结冰。<br>4.加速器（选配）：配装于干式报警阀上，当系统侧气压下降时快速动作，加速干式阀开启，开启时间不应大于30s。<br>三、自动喷水灭火系统洒水喷头类型区分：<br>1.按热敏感元件：玻璃球喷头（球内液体膨胀破裂）和易熔元件喷头（合金熔化）。玻璃球色标代表公称动作温度，如 橙色 57℃ （红色）68℃ （黄色）79℃ （绿色）93℃。<br>2.按安装位置：直立型喷头（ZSTZ，水流向上冲向溅水盘）、下垂型喷头（ZSTX，水流向下）、边墙型喷头（ZSTB，靠墙安装，向单侧喷洒）。<br>3.按灵敏度（响应时间系数RTI）：快速响应喷头（RTI≤50）、特殊响应喷头（50＜RTI≤80）、标准响应喷头（80＜RTI≤350）。快速响应喷头在产品代号前加'K'。<br>4.按保护面积：标准覆盖面积（单只保护面积≤20m²）和扩大覆盖面积（EC喷头，保护面积≤36m²，代号前加'EC'）。" },
+        { id:18, name:"自动喷水灭火系统类型区分", star:false, score:5, content:"区分方式：<br>一、湿式报警阀组、水流指示器等组件识别：<br>1.湿式报警阀组：包括湿式报警阀（单向阀，允许水流入系统侧）、延迟器（圆筒形容器，减少误报警）、水力警铃（铜铃铛，水力驱动报警）、压力开关（输出电信号）。阀体上设有供水侧和系统侧压力表，报警口与延迟器之间不应设置阀门。<br>2.水流指示器：安装于湿式系统配水管上，叶片型结构，当水流动时叶片摆动触发信号。本体标有水流方向，具有延时功能（2s～90s可调），灵敏度为15L/min～37.5L/min，复位时间不大于5s。<br>二、干式报警阀组、气压维持装置、充气设备等组件识别：<br>1.干式报警阀：<br>(1)系统侧充有预定压力的气体（通常为压缩空气或氮气）。<br>(2)阀瓣结构：干式阀的气体直接作用在阀瓣上，利用气、水压差使阀门关闭。<br>(3)阀体上除供水侧压力表外，还设有系统侧气压表，用于监视系统气压。<br>(4)阀体设有泄水口，用于排空系统侧积水。<br>(5)防复位装置：干式报警阀应设置防复位锁止机构。该机构在阀门动作后防止阀瓣组件自动回到伺应状态，需通过手动复位才能恢复，避免误复位导致系统失效。<br>2.气压维持装置：包括补气阀、压力开关等，用于自动维持系统侧气压在设定范围内。<br>3.充气设备：通常为小型空气压缩机或氮气瓶组，向干式系统管道内充气，防止低温结冰。<br>4.加速器（选配）：配装于干式报警阀上，当系统侧气压下降时快速动作，加速干式阀开启，开启时间不应大于30s。<br>三、自动喷水灭火系统洒水喷头类型区分：<br>1.按热敏感元件：玻璃球喷头（球内液体膨胀破裂）和易熔元件喷头（合金熔化）。玻璃球色标代表公称动作温度，如（橙色）57℃ （红色）68℃ （黄色）79℃ （绿色）93℃。<br>2.按安装位置：直立型喷头（ZSTZ，水流向上冲向溅水盘）、下垂型喷头（ZSTX，水流向下）、边墙型喷头（ZSTB，靠墙安装，向单侧喷洒）。<br>3.按灵敏度（响应时间系数RTI）：快速响应喷头（RTI≤50）、特殊响应喷头（50＜RTI≤80）、标准响应喷头（80＜RTI≤350）。快速响应喷头在产品代号前加'K'。<br>4.按保护面积：标准覆盖面积（单只保护面积≤20m²）和扩大覆盖面积（EC喷头，保护面积≤36m²，代号前加'EC'）。" },
         { id:19, name:"自动喷水灭火系统电气控制柜操作★", star:true, score:7, content:"操作步骤：<br>一、判断并切换电气控制柜：<br>1.观察喷淋泵控制柜面板，确认当前控制方式指示灯：'手动'指示灯亮或'自动'指示灯亮。<br>2.将转换开关（或钥匙）旋转至'自动'位置，'自动'指示灯点亮，'手动'指示灯熄灭，系统处于自动控制状态；反之旋转至'手动'位置，则处于手动控制状态。<br>3.控制方式切换后应不影响受控设备正常工作，且状态信号应反馈至消防控制室。<br>二、电气控制柜的主泵/备泵切换：<br>1.在控制柜面板上找到'主泵/备泵'选择开关（或'1#泵/2#泵'）。<br>2.将开关拨至'1#主用、2#备用'位置，此时主泵为1号泵，备用泵为2号泵；拨至'2#主用、1#备用'位置则互换。<br>3.切换后，手动启动时应优先启动主用泵，主泵故障时备用泵应自动投入。<br>三、电气控制柜的主电/备电切换：<br>1.观察控制柜面板'主电工作'（绿色）和'备电工作'（绿色）指示灯。<br>2.关闭控制柜主电开关（或断开主电电源），'主电工作'指示灯熄灭，'备电工作'指示灯点亮，系统自动切换至备电供电。<br>3.恢复主电供电后，系统应自动切换回主电供电，'主电工作'指示灯点亮，'备电工作'指示灯熄灭。<br>4.切换过程中控制柜不应误动作，指示灯状态变化应正常。<br>四、打开末端试水装置启动喷淋泵，测试主泵/备泵自动切换功能：<br>1.确认喷淋泵控制柜处于'自动'状态，火灾报警控制器处于'自动允许'状态。<br>2.打开末端试水装置（试水阀），放水5min以上，水流指示器动作，报警阀压力开关动作，喷淋泵应自动启动。<br>3.观察启动的泵是否为主泵（如1#泵）。若主泵故障（模拟主泵故障或关闭主泵控制回路），备用泵应在3s内自动投入运行。<br>4.关闭末端试水阀，手动停止喷淋泵，将控制柜恢复至'自动'状态，在消防控制室复位报警信号。<br>五、启动和停止喷淋泵：<br>1.将控制柜转换开关切换至'手动'位置。<br>2.按下'1#泵启动'按钮（或'主泵启动'），1#泵启动，'运行'指示灯点亮；按下'1#泵停止'按钮，泵停止运行。<br>3.同理可启动和停止2#泵（备泵）。<br>4.操作完成后，将控制柜恢复至'自动'状态，并检查泵组无异常振动、噪声，电流表指示正常。" },
         { id:20, name:"增（稳）压泵组电气控制柜操作", star:false, score:5, content:"操作步骤：<br>一、判断并切换电气控制柜的工作状态：<br>1.观察增（稳）压泵组控制柜面板指示灯：'自动'指示灯亮表示处于自动控制状态，'手动'指示灯亮表示处于手动控制状态；'主电工作'灯亮表示主电供电，'备电工作'灯亮表示备电供电；'1#泵运行'或'2#泵运行'灯亮指示当前工作泵。<br>2.切换控制方式：将转换开关（或钥匙）旋转至'自动'位置，'自动'指示灯点亮，系统可根据压力信号自动启停稳压泵；旋转至'手动'位置则只能通过按钮手动启停。<br>3.切换主备泵：通过'主泵/备泵'选择开关（或'1#泵/2#泵'）切换主用泵和备用泵，主泵故障时备用泵应自动投入。<br>4.切换主备电源：关闭控制柜主电开关，系统应自动切换至备电供电，'备电工作'灯亮；恢复主电后自动切回，'主电工作'灯亮。<br>二、启动和停止增（稳）压泵组并复位：<br>1.手动启动：将控制柜转换开关转至'手动'位，按下'1#泵启动'按钮，1#稳压泵启动，'运行'指示灯亮；按下'1#泵停止'按钮，泵停止运行。同理可操作2#泵。<br>2.自动启动（压力控制）：将控制柜设为'自动'状态，打开系统末端试水装置或泄压阀，当管网压力下降至设计启泵压力值时，稳压泵应自动启动；关闭放水阀，压力上升至设计停泵压力值时，稳压泵自动停止。<br>3.复位操作：手动停止稳压泵后，将控制柜转换开关恢复至'自动'位置；若因故障导致泵组停止，排除故障后按下控制柜上的'复位'按钮（或旋转复位旋钮），清除故障指示，使系统恢复正常待机状态。" },
         { id:21, name:"消防电话操作", star:false, score:5, content:"操作步骤：<br>一、操作消防电话总机呼叫电话分机：<br>1. 确认总机处于正常工作状态（'工作'指示灯闪亮）。<br>2. 摘下总机电话手柄，显示屏提示'输入密码'，输入操作密码'11111'（或录音删除密码'22222'）后按[确认]键，听筒听到拨号音。<br>3. 按数字键输入要呼叫的分机号（1~99），按[接通]键，听筒听到回铃音，被叫分机振铃。<br>4. 分机摘机后双方进入通话，'通话'指示灯常亮，'录音'指示灯亮，自动录音。<br>5. 通话结束，将手柄归位挂机，总机显示'通话结束，请挂机'。<br>二、操作消防电话分机呼叫电话总机：<br>1. 摘取固定式分机手柄（或按下手持式分机通话键），分机向总机发起呼叫。<br>2. 总机在1秒内发出呼叫声，'呼叫'指示灯快速闪亮，液晶屏显示'呼入'及分机号。<br>3. 按总机[消音]键可消除呼叫声，按[接通]键（或直接输入分机号后按[接通]）接听。<br>4. 总机与分机通话，自动录音；分机挂机后，总机显示通话结束。<br>三、操作插孔电话呼叫电话总机：<br>1. 将手持式分机（或电话插孔配套手柄）插入插孔接口或手动报警按钮内置的电话插孔。<br>2. 插孔电话自动呼叫总机，总机发出呼叫声，'呼叫'灯闪亮，液晶屏显示'呼入'及对应的插孔地址。<br>3. 总机按[接通]键接听，与插孔电话通话，自动录音。<br>4. 通话完毕，拔出插孔电话，总机恢复待机状态。" },
@@ -500,6 +545,7 @@
         { title: "🧹 设施保养", ids: [28,29,30,31,32,33,34,35,36,37,38], cssClass: "maintenance" }
     ];
 
+    // 构建分组内容（折叠区域无内联display，依靠expanded类控制）
     function buildGroupedContent() {
         let finalHtml = '';
         for (let mod of modules) {
@@ -512,7 +558,7 @@
                 let standardFormatted = formatStandardOnly(standardRaw[point.id] || "参考《消防设施操作员国家职业技能标准》执行。");
                 cardHtml += `
                     <div class="exam-point">
-                        <div class="point-title" onclick="toggleDetail(this)">
+                        <div class="point-title" data-point-id="${point.id}">
                             <div class="name">
                                 <span>鉴定点${point.id}：${point.name}</span>
                                 ${starHtml}
@@ -534,23 +580,119 @@
         document.getElementById('dynamicContent').innerHTML = finalHtml;
     }
 
-    // 折叠/展开功能 (全局)
-    window.toggleDetail = function(el) {
-        const detailDiv = el.nextElementSibling;
-        if (detailDiv.style.display === 'none' || !detailDiv.style.display) {
-            detailDiv.style.display = 'block';
-        } else {
-            detailDiv.style.display = 'none';
+    // 折叠/展开（平滑过渡）基于classList切换
+    window.toggleDetail = function(titleEl) {
+        const examPoint = titleEl.closest('.exam-point');
+        if (!examPoint) return;
+        const detailDiv = examPoint.querySelector('.point-detail');
+        if (detailDiv) {
+            detailDiv.classList.toggle('expanded');
         }
     };
 
-    // 悬浮窗跳转
-    document.getElementById('floatingBtn')?.addEventListener('click', function() {
-        window.open('https://prickly-grace.github.io/xfssczy-zhaosheng/', '_blank');
-    });
+    // 绑定标题点击事件（事件委托）
+    function bindToggleEvents() {
+        const container = document.getElementById('dynamicContent');
+        if (!container) return;
+        container.addEventListener('click', (e) => {
+            const title = e.target.closest('.point-title');
+            if (title) {
+                e.preventDefault();
+                toggleDetail(title);
+            }
+        });
+    }
 
+    // 悬浮按钮: 点击反馈 + 滚动隐藏逻辑 + 跳转
+    function initFloatingButton() {
+        const btn = document.getElementById('floatingBtn');
+        if (!btn) return;
+
+        // 点击反馈: 瞬间缩小再恢复，并打开链接
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 添加点击动画类
+            btn.classList.add('click-feedback');
+            setTimeout(() => {
+                btn.classList.remove('click-feedback');
+            }, 120);
+            // 打开外部链接（新窗口）
+            window.open('https://prickly-grace.github.io/xfssczy-zhaosheng/', '_blank');
+        });
+
+        // 滚动隐藏逻辑: 滚动超过200px隐藏，小于200px显示
+        let scrollTimer = null;
+        function handleScroll() {
+            if (scrollTimer) cancelAnimationFrame(scrollTimer);
+            scrollTimer = requestAnimationFrame(() => {
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                if (scrollY > 200) {
+                    btn.classList.add('hidden-btn');
+                } else {
+                    btn.classList.remove('hidden-btn');
+                }
+            });
+        }
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll(); // 初始检查
+    }
+
+    // 电话弹窗拨打（可选确认框）
+function initPhoneDial() {
+        // 匹配手机号 (1开头的11位数字，更精确)
+        const phoneRegex = /(1[3-9]\d{9})/g;
+        const footer = document.getElementById('mainFooter');
+        if (!footer) return;
+        
+        // 遍历所有文本节点，将电话号码包裹为可点击span
+        function processNode(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                if (phoneRegex.test(text)) {
+                    const span = document.createElement('span');
+                    let lastIndex = 0;
+                    let match;
+                    phoneRegex.lastIndex = 0;
+                    while ((match = phoneRegex.exec(text)) !== null) {
+                        const phone = match[0];
+                        const before = text.substring(lastIndex, match.index);
+                        if (before) span.appendChild(document.createTextNode(before));
+                        const linkSpan = document.createElement('span');
+                        linkSpan.className = 'phone-link';
+                        linkSpan.textContent = phone;
+                        linkSpan.setAttribute('data-phone', phone);
+                        linkSpan.style.cursor = 'pointer';
+                        linkSpan.style.textDecoration = 'underline';
+                        linkSpan.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const phoneNum = e.currentTarget.getAttribute('data-phone');
+                            if (phoneNum && confirm(`是否拨打 ${phoneNum} ？`)) {
+                                window.location.href = `tel:${phoneNum}`;
+                            }
+                        });
+                        span.appendChild(linkSpan);
+                        lastIndex = match.index + phone.length;
+                    }
+                    if (lastIndex < text.length) {
+                        span.appendChild(document.createTextNode(text.substring(lastIndex)));
+                    }
+                    node.parentNode.replaceChild(span, node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE && !node.classList?.contains('phone-link') && node.tagName !== 'A') {
+                // 递归处理子节点，避免重复处理已经替换的span
+                Array.from(node.childNodes).forEach(child => processNode(child));
+            }
+        }
+        
+        Array.from(footer.childNodes).forEach(child => processNode(child));
+    }
+
+    // 页面加载完成后执行
     window.onload = function() {
         buildGroupedContent();
+        bindToggleEvents();
+        initFloatingButton();
+        initPhoneDial();
     };
 </script>
 </body>
